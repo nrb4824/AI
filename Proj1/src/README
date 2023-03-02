@@ -1,0 +1,16 @@
+Coder: Nathan Borkholder
+Class: Intro To AI
+Instructor: Dr. Chilan
+
+The goal of this code is to take two data files and create a node tree with them. The run
+3 search algorithms (BFS, DFS, A*) on them. This project was used to test my knowledge
+of the search algorithms and understanding how to build them.
+
+When running code. Make sure all files are in the same directory.
+
+Run "javac Search.java" to compile the code
+Run "java Search yourInputFile outPutFileName" where yourInputFile is a file containing two cities on the map
+and outPutFileName is the name of the output file to be generated.
+
+This code also can read in and print to standard input/output. Just use "-" instead of the input file or ouput
+file name.
