@@ -36,6 +36,7 @@ public class Search {
                     startCityName = inputFile.next();
                     goalCityName = inputFile.next();
                 }
+                inputFile.close();
             }catch(Exception E){
                 System.err.println("File not found: " + args[0]);
                 System.exit(0);

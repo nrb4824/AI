@@ -72,15 +72,20 @@ public class AStar {
      * Sorts the current openNodes to put the smallest total cost in the front of the open nodes
      */
     private void sort(){
-        for(int i = 0; i< openNodes.size(); i++){
-            if(i != openNodes.size()-1){
-                if(openNodes.get(i).getTotalCost() > openNodes.get(i+1).getTotalCost()){
-                    City temp = openNodes.get(i);
-                    openNodes.set(i,openNodes.get(i+1));
-                    openNodes.set(i+1,temp);
+        for(int i = 1; i< openNodes.size(); i++){
+            int j = i;
+            while(j>0){
+                if(openNodes.get(j-1).getTotalCost() > openNodes.get(j).getTotalCost()){
+                    City temp = openNodes.get(j-1);
+                    openNodes.set(j-1,openNodes.get(j));
+                    openNodes.set(j,temp);
                 }
+                j--;
             }
+
+
         }
+
     }
     /**
      * Checks to see if the current city is visited
@@ -97,7 +102,7 @@ public class AStar {
     }
 
     /**
-     * Checks to see if the currenty city is already open
+     * Checks to see if the currently city is already open
      * @param city the current city
      * @return true if the city is open
      */

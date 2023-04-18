@@ -65,13 +65,15 @@ public class BFS {
      * @param city The city to sort edges
      */
     private void sort(City city){
-        for(int i = 0; i< city.edges.size(); i++){
-            if(i != city.edges.size()-1){
-                if(city.edges.get(i).getCityName().compareTo(city.edges.get(i+1).getCityName())>0){
-                    City temp = city.edges.get(i);
-                    city.edges.set(i,city.edges.get(i+1));
-                    city.edges.set(i+1,temp);
+        for (int i = 1; i < city.edges.size(); i++) {
+            int j = i;
+            while(j>0){
+                if (city.edges.get(j-1).getCityName().compareToIgnoreCase(city.edges.get(j).getCityName()) > 0) {
+                    City temp = city.edges.get(j-1);
+                    city.edges.set(j-1, city.edges.get(j));
+                    city.edges.set(j, temp);
                 }
+                j--;
             }
         }
     }
@@ -123,6 +125,7 @@ public class BFS {
      * Print statement for standard out
      */
     public void printStdOut(){
+        System.out.println("\n\n");
         System.out.println("Breadth-First Search Results: ");
         for(City city: path){
             System.out.println(city.getCityName());
