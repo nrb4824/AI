@@ -71,29 +71,76 @@ INDIVIDUALS = []
 #   c ← random number from 1 to n
 #   return APPEND(SUBSTRING(parent1, 1, c), SUBSTRING(parent2, c + 1, n))
 
-def GA(population, fitness):
-    return None
+def GA(population):
+    fitness = []
+    for i in range(POPSIZE):
+        fitness.append(population[i].fitness)
+    population2 = []
+    for i in range(1,POPSIZE):
+        parent1, parent2 = np.random.choices(population, fitness, k = 2)
+        crossPoint = np.random.randint(1, 8)
+
+        parent1LowG = parent1.gamas[0:crossPoint]
+        parent1HighG = parent1.gamas[crossPoint:]
+        parent1LowB = parent1.betas[0:crossPoint]
+        parent1HighB = parent1.betas[crossPoint:]
+
+        parent2LowG = parent2.gamas[0:crossPoint]
+        parent2HighG = parent2.gamas[crossPoint:]
+        parent2LowB = parent2.betas[0:crossPoint]
+        parent2HighB = parent2.betas[crossPoint:]
+
+        child1G = parent1LowG + parent2HighG
+        child1B = parent1LowB + parent2HighB
+        child2G = parent2LowG + parent1HighG
+        child2B = parent2LowB + parent1HighB
+
+        Mutation(child1G)
+        Mutation(child1B)
+        Mutation(child2G)
+        Mutation(child2B)
+
+        population2.append(Individual(0, 8, 0, 0, child1G, child1B))
+        population2.append(Individual(0, 8, 0, 0, child2G, child2B))
+
+        # TODO add elitism.
+
+    return population2
+
+def Mutation(list):
+    for i in list:
+        for j in i:
+            mutate = np.random.choice([1,2],[95.5,.5], k=1)
+            if mutate == 2:
+                if j == 0:
+                    j = 1
+                else:
+                    j = 0
 
 def EulerCalc(index):
+
+    #interpolate math
     x = np.arange(10)
-    #cs = sp.interpolate.CubicSpline(x, INDIVIDUALS[index].betas, bc_type=((1, -.524), (2, .524)))
-    cs = sp.interpolate.CubicSpline(x, INDIVIDUALS[index].betas, bc_type='natural')
-    #cs = sp.interpolate.splrep(INDIVIDUALS[index].gamas, s=0)
-    #array = sp.interpolate.splev(x, cs)
+    gammas = INDIVIDUALS[index].gamas
+    betas = INDIVIDUALS[index].betas
+    betasCubic = sp.interpolate.CubicSpline(x, betas, bc_type='natural')
+    gammasCubic = sp.interpolate.CubicSpline(x, gammas, bc_type='natural')
+    betas_x = np.linspace(0,10,100)
+    gammas_x = np.linspace(0,10,100)
+    betas_y = betasCubic(betas_x)
+    gammas_y = gammasCubic(gammas_x)
+
+    #uses interpolated values for euler calculations
+    timestep = .1
     for i in range(100):
-        print(cs(i/10))
-    # timestep = .1
-    # for i in range(OPPARAM):
-    #     gamma = INDIVIDUALS[index].gamas[i]
-    #     beta = INDIVIDUALS[index].betas[i]
-    #     for t in range(10):
-    #         INDIVIDUALS[index].calcNewVals(gamma, beta, timestep)
+        INDIVIDUALS[index].calcNewVals(gammas_y[i], betas_y[i], timestep)
 
 #calculates the cost function for a given individual
 #Final state is [0 0 0 0] so there is no need to subtract in the square root
 def CostCalc(index):
     if INDIVIDUALS[index].infeasible:
        j = INFEASCONST
+       INDIVIDUALS[index].cost = j
     else:
         x = np.square(INDIVIDUALS[index].x)
         y = np.square(INDIVIDUALS[index].y)
@@ -107,16 +154,40 @@ def FitnessCost(index):
     j = INDIVIDUALS[index].cost
     INDIVIDUALS[index].fitness = 1/(j+1)
 
+def ConvertToBinaryG(value):
+    lb = -0.524
+    R = .524*2
+    d = ((value - lb)*(2**BINARYSIZE - 1))/R
+    d = int(d)
+    binary = '{0:07b}'.format(d)
+    return binary
+
+
+def ConvertFromBinaryG(d):
+    print(d)
+    d = int(d,2)
+    lb = -0.524
+    R = .524*2
+
+    value = (d/(2**BINARYSIZE - 1))*R + lb
+    return value
+
+# the sort function to determine the lowest cost.
+def sortFunc(i):
+    return i.fitness
+
 def main():
     for i in range(POPSIZE):
         gamas = np.random.uniform(low=-0.524, high=0.524, size=OPPARAM)
         betas = np.random.uniform(low=-5, high=5, size=OPPARAM)
         INDIVIDUALS.append(Individual(0, 8, 0, 0, gamas, betas))
-        print("help")
         EulerCalc(i)
         CostCalc(i)
+        FitnessCost(i)
 
-
+    INDIVIDUALS.sort(key=sortFunc, reverse=True)
+    while(INDIVIDUALS[0].cost >= .1):
+        INDIVIDUALS = GA(INDIVIDUALS)
 
     return None
 
