@@ -75,11 +75,7 @@ def GA(population):
         fitnessTotal += population[i].fitness
     for i in range(POPSIZE):
         fitnessPercents.append((population[i].fitness / fitnessTotal))
-    population2 = []
-    population2.append(population[0])
-    population2.append(population[1])
-    population2.append(population[2])
-    population2.append(population[3])
+    population2 = [population[0], population[1], population[2], population[3]]
     halfPop = int(POPSIZE/2)
     for i in range(0, halfPop-2):
         parent1, parent2 = np.random.choice(population, 2, p=fitnessPercents)
@@ -140,6 +136,10 @@ def Mutation(list, type):
 
 
 def EulerCalc(index, population):
+    population[index].x = 0
+    population[index].y = 8
+    population[index].headAng = 0
+    population[index].v = 0
     # interpolate math
     x = np.arange(10)
     gammas = population[index].gamas
@@ -216,7 +216,7 @@ def ConvertFromBinaryB(d):
 
 # the sort function to determine the lowest cost.
 def sortFunc(i):
-    return i.fitness
+    return i.cost
 
 
 def main():
@@ -230,13 +230,17 @@ def main():
         CostCalc(i, population)
         FitnessCost(i, population)
     generation += 1
-    population.sort(key=sortFunc, reverse=True)
-    print("Generation ", generation, " : J = ", population[0].cost)
+    population.sort(key=sortFunc)
+    print("Generation ", generation, " : J = ", population[0].cost, population[5].cost)
     while (population[0].cost >= .1):
         population = GA(population)
         generation += 1
-        population.sort(key=sortFunc, reverse=True)
-        print("Generation ", generation, " : J = ", population[0].cost)
+        for i in range(POPSIZE):
+            EulerCalc(i, population)
+            CostCalc(i, population)
+            FitnessCost(i, population)
+        population.sort(key=sortFunc)
+        print("Generation ", generation, " : J = ", population[0].cost, population[1].cost,population[2].cost,population[3].cost,population[4].cost, population[5].cost)
 
     return None
 
