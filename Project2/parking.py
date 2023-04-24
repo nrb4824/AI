@@ -37,6 +37,11 @@ class Individual:
             self.infeasible = True
         elif self.x >= 4 and not self.y > 3:
             self.infeasible = True
+        elif self.y > 25:
+            self.infeasible = True
+        elif self.x == 0 and self.y == 0:
+            self.headAng = 0
+            self.v = 0
 
         state = [self.x, self.y, self.headAng, self.v]
         self.stateHistory.append(state)
@@ -119,7 +124,7 @@ def Mutation(list, type):
             b = ConvertToBinaryB(i)
         b2 = ""
         for j in b:
-            mutate = np.random.choice([1, 2], 1, p = [.995, .005])
+            mutate = np.random.choice([1, 2], 1, p = [1-MUTATIONPROB, MUTATIONPROB])
             if mutate == 2:
                 if j == 0:
                     b2 += '1'
@@ -128,9 +133,17 @@ def Mutation(list, type):
             else:
                 b2 += j
         if type:
-            d = ConvertFromBinaryB(b2)
-        else:
             d = ConvertFromBinaryG(b2)
+            if d > .524:
+                d = .524
+            elif d < -.524:
+                d = -.524
+        else:
+            d = ConvertFromBinaryB(b2)
+            if d > 5:
+                d = 5
+            elif d < -5:
+                d = -5
         newList.append(d)
     return newList
 
@@ -146,15 +159,22 @@ def EulerCalc(index, population):
     betas = population[index].betas
     betasCubic = sp.interpolate.CubicSpline(x, betas, bc_type='natural')
     gammasCubic = sp.interpolate.CubicSpline(x, gammas, bc_type='natural')
-    betas_x = np.linspace(0, 10, 100)
+    betas_x, step = np.linspace(0, 10, 100, retstep=True)
     gammas_x = np.linspace(0, 10, 100)
     betas_y = betasCubic(betas_x)
     gammas_y = gammasCubic(gammas_x)
 
     # uses interpolated values for euler calculations
-    timestep = .1
     for i in range(100):
-        population[index].calcNewVals(gammas_y[i], betas_y[i], timestep)
+        if gammas_y[i] < -.524:
+            gammas_y[i] = -.524
+        elif gammas_y[i] > .524:
+            gammas_y[i] = .524
+        elif betas_y[i] < -5:
+            betas_y[i] = -5
+        elif betas_y[i] > 5:
+            betas_y[i] = 5
+        population[index].calcNewVals(gammas_y[i], betas_y[i], step)
 
 
 # calculates the cost function for a given individual
@@ -232,6 +252,16 @@ def main():
     generation += 1
     population.sort(key=sortFunc)
     print("Generation ", generation, " : J = ", population[0].cost, population[5].cost)
+
+    # for t in range(2):
+    #     population = GA(population)
+    #     generation += 1
+    #     for i in range(POPSIZE):
+    #         EulerCalc(i, population)
+    #         CostCalc(i, population)
+    #         FitnessCost(i, population)
+    #     population.sort(key=sortFunc)
+
     while (population[0].cost >= .1):
         population = GA(population)
         generation += 1
@@ -240,7 +270,11 @@ def main():
             CostCalc(i, population)
             FitnessCost(i, population)
         population.sort(key=sortFunc)
-        print("Generation ", generation, " : J = ", population[0].cost, population[1].cost,population[2].cost,population[3].cost,population[4].cost, population[5].cost)
+        print("Generation ", generation, " : J = ", population[0].cost, population[1].cost,population[2].cost,population[3].cost,population[4].cost, population[5].cost, population[20].cost)
+        print("[ ", population[0].x, population[0].y, population[0].headAng, population[0].v, " ]")
+
+        #print("Generation ", generation, " : J = ", population[0].fitness, population[1].fitness,population[2].fitness,population[3].fitness,population[4].fitness, population[5].fitness, population[199].fitness)
+
 
     return None
 
