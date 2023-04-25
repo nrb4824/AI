@@ -37,75 +37,83 @@ class Individual:
             self.infeasible = True
         elif self.x >= 4 and not self.y > 3:
             self.infeasible = True
-        elif self.y > 25:
-            self.infeasible = True
-        elif self.x == 0 and self.y == 0:
-            self.headAng = 0
-            self.v = 0
+        # elif self.y > 25:
+        #     self.infeasible = True
 
         state = [self.x, self.y, self.headAng, self.v]
         self.stateHistory.append(state)
 
 
-POPSIZE = 200
+POPSIZE = 500
 GENS = 0
 OPPARAM = 10
 BINARYSIZE = 7
 MUTATIONPROB = .005  # .5%
 INFEASCONST = 200  # K
 
-
-# function GENETIC-ALGORITHM(population, fitness) returns an individual
-#   repeat
-#       weights ← WEIGHTED-BY(population, fitness)
-#       population2 ← empty list
-#       for i = 1 to SIZE(population) do
-#           parent1 , parent2 ← WEIGHTED-RANDOM-CHOICES(population,weights, 2)
-#           child ← REPRODUCE(parent1, parent2 )
-#           if (small random probability) then child ← MUTATE(child)
-#           add child to population2
-#       population ← population2
-#   until some individual is fit enough, or enough time has elapsed
-# return the best individual in population, according to fitness
-#
-# function REPRODUCE(parent1, parent2 ) returns an individual
-#   n ← LENGTH(parent1)
-#   c ← random number from 1 to n
-#   return APPEND(SUBSTRING(parent1, 1, c), SUBSTRING(parent2, c + 1, n))
-
 def GA(population):
     fitnessPercents = []
     fitnessTotal = 0
+    #find fitness total for percentages
     for i in range(POPSIZE):
         fitnessTotal += population[i].fitness
+
+    #calculate fitness percents and store in array
     for i in range(POPSIZE):
         fitnessPercents.append((population[i].fitness / fitnessTotal))
+
+    #add best 4 individuals to next generation (elitism)
     population2 = [population[0], population[1], population[2], population[3]]
     halfPop = int(POPSIZE/2)
-    for i in range(0, halfPop-2):
-        parent1, parent2 = np.random.choice(population, 2, p=fitnessPercents)
-        crossPoint = np.random.randint(1, 8)
 
+    #generate children creates 196 individuals
+    for i in range(0, halfPop-2):
+        #generates 2 parents based on fitness percents
+        parent1, parent2 = np.random.choice(population, 2, p=fitnessPercents)
+        #cross point randomly chosen
+        crossPoint = 0
+        crossPoint2 = 0
+        while crossPoint == crossPoint2:
+            val1 = int(np.random.randint(1,8))
+            val2 = int(np.random.randint(1, 8))
+            if val1 > val2:
+                crossPoint2 = val1
+                crossPoint = val2
+
+            else:
+                crossPoint2 = val2
+                crossPoint = val1
+
+        #creates seperate arrays for the crosspoints for each parent
         parent1LowG = parent1.gamas[0:crossPoint]
-        parent1HighG = parent1.gamas[crossPoint:]
+        parent1MidG = parent1.gamas[crossPoint:crossPoint2]
+        parent1HighG = parent1.gamas[crossPoint2:]
+
         parent1LowB = parent1.betas[0:crossPoint]
-        parent1HighB = parent1.betas[crossPoint:]
+        parent1MidB = parent1.betas[crossPoint:crossPoint2]
+        parent1HighB = parent1.betas[crossPoint2:]
 
         parent2LowG = parent2.gamas[0:crossPoint]
-        parent2HighG = parent2.gamas[crossPoint:]
+        parent2MidG = parent2.gamas[crossPoint:crossPoint2]
+        parent2HighG = parent2.gamas[crossPoint2:]
+
         parent2LowB = parent2.betas[0:crossPoint]
-        parent2HighB = parent2.betas[crossPoint:]
+        parent2MidB = parent2.betas[crossPoint: crossPoint2]
+        parent2HighB = parent2.betas[crossPoint2:]
 
-        child1G = np.concatenate((parent1LowG, parent2HighG))
-        child1B = np.concatenate((parent1LowB, parent2HighB))
-        child2G = np.concatenate((parent2LowG, parent1HighG))
-        child2B = np.concatenate((parent2LowB, parent1HighB))
+        #combines the arrays to create the children
+        child1G = np.concatenate((parent1LowG, parent2MidG, parent1HighG))
+        child1B = np.concatenate((parent1LowB, parent2MidB, parent1HighB))
+        child2G = np.concatenate((parent2LowG, parent1MidG, parent2HighG))
+        child2B = np.concatenate((parent2LowB, parent1MidB, parent2HighB))
 
+        #applys mutation on children
         child1G = Mutation(child1G, True)
         child1B = Mutation(child1B, False)
         child2G = Mutation(child2G, True)
         child2B = Mutation(child2B, False)
 
+        #add the children to the population
         population2.append(Individual(0, 8, 0, 0, child1G, child1B))
         population2.append(Individual(0, 8, 0, 0, child2G, child2B))
 
@@ -122,16 +130,19 @@ def Mutation(list, type):
             b = ConvertToBinaryG(i)
         else:
             b = ConvertToBinaryB(i)
+        #loops through each bit and if mutated flips the bit
         b2 = ""
         for j in b:
-            mutate = np.random.choice([1, 2], 1, p = [1-MUTATIONPROB, MUTATIONPROB])
+            mutate = np.random.choice([1, 2], 1, p=[1-MUTATIONPROB, MUTATIONPROB])
             if mutate == 2:
                 if j == 0:
                     b2 += '1'
                 else:
                     b2 += '0'
+            #otherwise add the bit back into the string
             else:
                 b2 += j
+        #checks to make sure mutation isn't out of bounds
         if type:
             d = ConvertFromBinaryG(b2)
             if d > .524:
@@ -149,53 +160,54 @@ def Mutation(list, type):
 
 
 def EulerCalc(index, population):
-    population[index].x = 0
-    population[index].y = 8
-    population[index].headAng = 0
-    population[index].v = 0
-    # interpolate math
-    x = np.arange(10)
-    gammas = population[index].gamas
-    betas = population[index].betas
-    betasCubic = sp.interpolate.CubicSpline(x, betas, bc_type='natural')
-    gammasCubic = sp.interpolate.CubicSpline(x, gammas, bc_type='natural')
-    betas_x, step = np.linspace(0, 10, 100, retstep=True)
-    gammas_x = np.linspace(0, 10, 100)
-    betas_y = betasCubic(betas_x)
-    gammas_y = gammasCubic(gammas_x)
+    #resets individuals from previous generation
+    if population[index].cost == 0:
+        # interpolate math
+        x = np.arange(10)
+        gammas = population[index].gamas
+        betas = population[index].betas
+        betasCubic = sp.interpolate.CubicSpline(x, betas, bc_type='natural')
+        gammasCubic = sp.interpolate.CubicSpline(x, gammas, bc_type='natural')
+        betas_x, step = np.linspace(0, OPPARAM-1, 100, retstep=True)
+        gammas_x = np.linspace(0, OPPARAM-1, 100)
+        betas_y = betasCubic(betas_x)
+        gammas_y = gammasCubic(gammas_x)
 
-    # uses interpolated values for euler calculations
-    for i in range(100):
-        if gammas_y[i] < -.524:
-            gammas_y[i] = -.524
-        elif gammas_y[i] > .524:
-            gammas_y[i] = .524
-        elif betas_y[i] < -5:
-            betas_y[i] = -5
-        elif betas_y[i] > 5:
-            betas_y[i] = 5
-        population[index].calcNewVals(gammas_y[i], betas_y[i], step)
+        # uses interpolated values for euler calculations
+        for i in range(100):
+            #checks against constraints
+            if gammas_y[i] < -.524:
+                gammas_y[i] = -.524
+            elif gammas_y[i] > .524:
+                gammas_y[i] = .524
+            elif betas_y[i] < -5:
+                betas_y[i] = -5
+            elif betas_y[i] > 5:
+                betas_y[i] = 5
+            population[index].calcNewVals(gammas_y[i], betas_y[i], step)
 
 
 # calculates the cost function for a given individual
 # Final state is [0 0 0 0] so there is no need to subtract in the square root
 def CostCalc(index, population):
-    if population[index].infeasible:
-        j = INFEASCONST
-        population[index].cost = j
-    else:
-        x = np.square(population[index].x)
-        y = np.square(population[index].y)
-        headingAng = np.square(population[index].headAng)
-        v = np.square(population[index].v)
+    if population[index].cost == 0:
+        if population[index].infeasible:
+            j = INFEASCONST
+            population[index].cost = j
+        else:
+            x = np.square(population[index].x)
+            y = np.square(population[index].y)
+            headingAng = np.square(population[index].headAng)
+            v = np.square(population[index].v)
 
-        j = np.sqrt(x + y + headingAng + v)
-        population[index].cost = np.abs(j)
+            j = np.sqrt(x + y + headingAng + v)
+            population[index].cost = np.abs(j)
 
 
 def FitnessCost(index, population):
-    j = population[index].cost
-    population[index].fitness = 1 / (j + 1)
+    if population[index].fitness == 0:
+        j = population[index].cost
+        population[index].fitness = 1 / (j + 1)
 
 
 def ConvertToBinaryG(value):
@@ -242,6 +254,7 @@ def sortFunc(i):
 def main():
     generation = 0
     population = []
+    #generates intitial generation
     for i in range(POPSIZE):
         gamas = np.random.uniform(low=-0.524, high=0.524, size=OPPARAM)
         betas = np.random.uniform(low=-5, high=5, size=OPPARAM)
@@ -253,15 +266,7 @@ def main():
     population.sort(key=sortFunc)
     print("Generation ", generation, " : J = ", population[0].cost, population[5].cost)
 
-    # for t in range(2):
-    #     population = GA(population)
-    #     generation += 1
-    #     for i in range(POPSIZE):
-    #         EulerCalc(i, population)
-    #         CostCalc(i, population)
-    #         FitnessCost(i, population)
-    #     population.sort(key=sortFunc)
-
+    #Use GA until cost is met.
     while (population[0].cost >= .1):
         population = GA(population)
         generation += 1
@@ -270,10 +275,55 @@ def main():
             CostCalc(i, population)
             FitnessCost(i, population)
         population.sort(key=sortFunc)
-        print("Generation ", generation, " : J = ", population[0].cost, population[1].cost,population[2].cost,population[3].cost,population[4].cost, population[5].cost, population[20].cost)
-        print("[ ", population[0].x, population[0].y, population[0].headAng, population[0].v, " ]")
+        print("Generation ", generation, " : J = ", "1-5: ", population[0].cost, population[1].cost,population[2].cost,population[3].cost,population[4].cost, population[5].cost, " 20th:", population[20].cost)
 
-        #print("Generation ", generation, " : J = ", population[0].fitness, population[1].fitness,population[2].fitness,population[3].fitness,population[4].fitness, population[5].fitness, population[199].fitness)
+    states = population[0].stateHistory
+    xs = []
+    ys = []
+    headAngs = []
+    vs = []
+    for i in states:
+        xs.append(i[0])
+        ys.append(i[1])
+        headAngs.append(i[2])
+        vs.append(i[3])
+
+    #solution trajectory graph
+    obstaclesx = [-15, -4, -4, 4, 4, 15]
+    obstaclesy = [3, 3, -1, -1, 3, 3]
+    plt.plot(obstaclesx, obstaclesy, 'g')
+    plt.plot(xs, ys, 'b')
+    plt.title('Solution Trajectory')
+    plt.xlabel('x')
+    plt.ylabel('y')
+    plt.show()
+
+    hundredTime = np.arange(100)
+
+    plt.plot(hundredTime, xs, 'b')
+    plt.title('State Variable X')
+    plt.xlabel('Time (s)')
+    plt.ylabel('x (ft)')
+    plt.show()
+
+    plt.plot(hundredTime, ys, 'b')
+    plt.title('State Variable Y')
+    plt.xlabel('Time (s)')
+    plt.ylabel('y (ft)')
+    plt.show()
+
+    plt.plot(hundredTime, headAngs, 'b')
+    plt.title('State Variable Heading Angle')
+    plt.xlabel('Time (s)')
+    plt.ylabel('Heading Angle (rad)')
+    plt.show()
+
+    plt.plot(hundredTime, vs, 'b')
+    plt.title('State Variable Velocity')
+    plt.xlabel('Time (s)')
+    plt.ylabel('v (ft/s)')
+    plt.show()
+
 
 
     return None
