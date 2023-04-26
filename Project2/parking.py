@@ -64,12 +64,25 @@ def GA(population):
 
     #add best 4 individuals to next generation (elitism)
     population2 = [population[0], population[1], population[2], population[3]]
+    population2[0].gamas = Mutation(population2[0].gamas, True)
+    population2[0].betas = Mutation(population2[0].betas, False)
+
+    population2[1].gamas = Mutation(population2[1].gamas, True)
+    population2[1].betas = Mutation(population2[1].betas, False)
+
+    population2[2].gamas = Mutation(population2[2].gamas, True)
+    population2[2].betas = Mutation(population2[2].betas, False)
+
+    population2[3].gamas = Mutation(population2[3].gamas, True)
+    population2[3].betas = Mutation(population2[3].betas, False)
     halfPop = int(POPSIZE/2)
 
     #generate children creates 196 individuals
     for i in range(0, halfPop-2):
         #generates 2 parents based on fitness percents
         parent1, parent2 = np.random.choice(population, 2, p=fitnessPercents)
+        while parent1 == parent2:
+            parent1, parent2 = np.random.choice(population, 2, p=fitnessPercents)
         #cross point randomly chosen
         crossPoint = 0
         crossPoint2 = 0
@@ -112,6 +125,7 @@ def GA(population):
         child1B = Mutation(child1B, False)
         child2G = Mutation(child2G, True)
         child2B = Mutation(child2B, False)
+
 
         #add the children to the population
         population2.append(Individual(0, 8, 0, 0, child1G, child1B))
@@ -176,14 +190,14 @@ def EulerCalc(index, population):
         # uses interpolated values for euler calculations
         for i in range(100):
             #checks against constraints
-            if gammas_y[i] < -.524:
-                gammas_y[i] = -.524
-            elif gammas_y[i] > .524:
-                gammas_y[i] = .524
-            elif betas_y[i] < -5:
-                betas_y[i] = -5
-            elif betas_y[i] > 5:
-                betas_y[i] = 5
+            # if gammas_y[i] < -.524:
+            #     gammas_y[i] = -.524
+            # elif gammas_y[i] > .524:
+            #     gammas_y[i] = .524
+            # elif betas_y[i] < -5:
+            #     betas_y[i] = -5
+            # elif betas_y[i] > 5:
+            #     betas_y[i] = 5
             population[index].calcNewVals(gammas_y[i], betas_y[i], step)
 
 
