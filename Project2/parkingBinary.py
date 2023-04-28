@@ -7,6 +7,7 @@
 # • Maximum number of generations: 1200
 # • Maximum execution time: 7 min
 
+import random
 import numpy as np
 import matplotlib.pyplot as plt
 import scipy as sp
@@ -41,7 +42,7 @@ class Individual:
         self.stateHistory.append(state)
 
 
-POPSIZE = 500
+POPSIZE = 200
 GENS = 0
 OPPARAM = 10
 BINARYSIZE = 7
@@ -59,16 +60,23 @@ def GA(population):
     for i in range(POPSIZE):
         fitnessPercents.append((population[i].fitness / fitnessTotal))
 
-    #add best 4 individuals to next generation (elitism)
-    population2 = [population[0], population[1], population[2], population[3]]
+    #add best 2 individuals to next generation (elitism)
+    population2 = [population[0], population[1]]
     halfPop = int(POPSIZE/2)
 
-    #generate children creates 196 individuals
-    for i in range(0, halfPop-2):
+    #generate children creates POPSIZE - 2 individuals
+    for i in range(0, halfPop-1):
         #generates 2 parents based on fitness percents
-        parent1, parent2 = np.random.choice(population, 2, p=fitnessPercents)
+        int1, int2 = random.choices(range(POPSIZE), weights = fitnessPercents, k = 2)
+        parent1 = population[int1]
+        parent2 = population[int2]
         while parent1 == parent2:
-            parent1, parent2 = np.random.choice(population, 2, p=fitnessPercents)
+            int1, int2 = random.choices(range(POPSIZE), weights=fitnessPercents, k=2)
+            parent1 = population[int1]
+            parent2 = population[int2]
+        # parent1, parent2 = np.random.choice(population, 2, p=fitnessPercents)
+        # while parent1 == parent2:
+        #     parent1, parent2 = np.random.choice(population, 2, p=fitnessPercents)
         #cross point randomly chosen
         crossPoint = 0
         crossPoint2 = 0
@@ -83,7 +91,7 @@ def GA(population):
                 crossPoint2 = val2
                 crossPoint = val1
 
-        # creates seperate arrays for the crosspoints for each parent
+        #creates seperate arrays for the crosspoints for each parent
         parent1Low = parent1.controls[0:crossPoint]
         parent1Mid = parent1.controls[crossPoint:crossPoint2]
         parent1High = parent1.controls[crossPoint2:]
@@ -92,15 +100,17 @@ def GA(population):
         parent2Mid = parent2.controls[crossPoint:crossPoint2]
         parent2High = parent2.controls[crossPoint2:]
 
-        # combines the arrays to create the children
+        #combines the arrays to create the children
         child1 = np.concatenate((parent1Low, parent2Mid, parent1High))
         child2 = np.concatenate((parent2Low, parent1Mid, parent2High))
 
-        # applys mutation on children
+        #applys mutation on children
         child1 = Mutation(child1)
         child2 = Mutation(child2)
 
-        # add the children to the population
+
+
+        #add the children to the population
         population2.append(Individual(0, 8, 0, 0, child1))
         population2.append(Individual(0, 8, 0, 0, child2))
 
@@ -116,8 +126,9 @@ def Mutation(list):
         #loops through each bit and if mutated flips the bit
         b2 = ""
         for j in i:
-            mutate = np.random.choice([1, 2], 1, p=[1-MUTATIONPROB, MUTATIONPROB])
-            if mutate == 2:
+            mutate = random.uniform(0,1)
+            #mutate = np.random.choice([1, 2], 1, p=[1-MUTATIONPROB, MUTATIONPROB])
+            if mutate < MUTATIONPROB:
                 if j == 0:
                     b2 += '1'
                 else:
@@ -145,14 +156,17 @@ def EulerCalc(index, population):
         betas.append(ConvertFromBinaryB(population[index].controls[(2*g)+1]))
 
     # interpolate math
-    x = np.arange(10)
+    #x = np.arange(10)
+    x = np.linspace(0, 10, 10)
+
     betasCubic = sp.interpolate.CubicSpline(x, betas, bc_type='natural')
     gammasCubic = sp.interpolate.CubicSpline(x, gammas, bc_type='natural')
-    betas_x, step = np.linspace(0, OPPARAM-1, 100, retstep=True)
-    gammas_x = np.linspace(0, OPPARAM-1, 100)
+    #betas_x, step = np.linspace(0, OPPARAM, 100, retstep=True)
+    betas_x = np.linspace(0, OPPARAM, 100)
+    gammas_x = np.linspace(0, OPPARAM, 100)
     betas_y = betasCubic(betas_x)
     gammas_y = gammasCubic(gammas_x)
-
+    step = .1
     # uses interpolated values for euler calculations
     for i in range(100):
         #checks against constraints
@@ -195,11 +209,10 @@ def ConvertToBinaryG(value):
     d = ((value - lb) * (2 ** BINARYSIZE - 1)) / R
     d = int(d)
     binary = '{0:07b}'.format(d)
-    return binarytoGray(binary)
+    return binary
 
 
 def ConvertFromBinaryG(d):
-    d = graytoBinary(d)
     d = int(d, 2)
     lb = -0.524
     R = .524 * 2
@@ -214,74 +227,16 @@ def ConvertToBinaryB(value):
     d = ((value - lb) * (2 ** BINARYSIZE - 1)) / R
     d = int(d)
     binary = '{0:07b}'.format(d)
-    return binarytoGray(binary)
+    return binary
 
 
 def ConvertFromBinaryB(d):
-    d = graytoBinary(d)
     d = int(d, 2)
     lb = -5.0
     R = 5.0 * 2
 
     value = (d / (2 ** BINARYSIZE - 1)) * R + lb
     return value
-
-#code from https://www.geeksforgeeks.org/gray-to-binary-and-binary-to-gray-conversion/
-# Python3 program for Binary To Gray
-# and Gray to Binary conversion
-
-# Helper function to xor two characters
-def xor_c(a, b):
-    return '0' if (a == b) else '1';
-
-
-# Helper function to flip the bit
-def flip(c):
-    return '1' if (c == '0') else '0';
-
-
-# function to convert binary string
-# to gray string
-def binarytoGray(binary):
-    gray = ""
-
-    # MSB of gray code is same as
-    # binary code
-    gray += binary[0]
-    # Compute remaining bits, next bit
-    # is computed by doing XOR of previous
-    # and current in Binary
-    for i in range(1,BINARYSIZE):
-        # Concatenate XOR of previous
-        # bit with current bit
-        gray += xor_c(binary[i - 1],
-                      binary[i])
-    return gray
-
-
-# function to convert gray code
-# string to binary string
-def graytoBinary(gray):
-    binary = ""
-
-    # MSB of binary code is same
-    # as gray code
-    binary += gray[0]
-
-    # Compute remaining bits
-    for i in range(1, BINARYSIZE):
-
-        # If current bit is 0,
-        # concatenate previous bit
-        if (gray[i] == '0'):
-            binary += binary[i - 1];
-
-        # Else, concatenate invert
-        # of previous bit
-        else:
-            binary += flip(binary[i - 1]);
-
-    return binary;
 
 # the sort function to determine the lowest cost.
 def sortFunc(i):
@@ -298,12 +253,12 @@ def main():
             binary = ""
             binary2 = ""
             for t in range(BINARYSIZE):
-                temp = str(np.random.randint(0, 2))
-                temp2 = str(np.random.randint(0, 2))
+                temp = str(np.random.randint(0,2))
+                temp2 = str(np.random.randint(0,2))
                 binary += temp
                 binary2 += temp2
-            controls.append(binarytoGray(binary))
-            controls.append(binarytoGray(binary2))
+            controls.append(binary)
+            controls.append(binary2)
         population.append(Individual(0, 8, 0, 0, controls))
 
         EulerCalc(i, population)
@@ -317,10 +272,12 @@ def main():
     while (population[0].cost >= .1):
         population = GA(population)
         generation += 1
+        best = population[0].cost
         for i in range(POPSIZE):
             EulerCalc(i, population)
             CostCalc(i, population)
             FitnessCost(i, population)
+
         population.sort(key=sortFunc)
         print("Generation ", generation, " : J = ", "1-5: ", population[0].cost, population[1].cost,population[2].cost,population[3].cost,population[4].cost, population[5].cost, " 20th:", population[20].cost)
 
