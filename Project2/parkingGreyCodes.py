@@ -42,7 +42,7 @@ class Individual:
         self.stateHistory.append(state)
 
 
-POPSIZE = 500
+POPSIZE = 200
 GENS = 0
 OPPARAM = 10
 BINARYSIZE = 7
@@ -144,10 +144,10 @@ def GA(population):
         # child2B = np.concatenate((parent2LowB, parent1MidB, parent2Mid2B, parent1HighB))
 
         #applys mutation on children
-        child1G = Mutation(child1G, True)
-        child1B = Mutation(child1B, False)
-        child2G = Mutation(child2G, True)
-        child2B = Mutation(child2B, False)
+        child1G = Mutation(child1G)
+        child1B = Mutation(child1B)
+        child2G = Mutation(child2G)
+        child2B = Mutation(child2B)
 
 
         #add the children to the population
@@ -160,16 +160,12 @@ def GA(population):
 
 # passes in the list of gamma or beta values.
 # if gamma then true, if beta than false
-def Mutation(list, type):
+def Mutation(list):
     newList = []
     for i in list:
-        if type:
-            b = ConvertToBinaryG(i)
-        else:
-            b = ConvertToBinaryB(i)
         #loops through each bit and if mutated flips the bit
         b2 = ""
-        for j in b:
+        for j in i:
             mutate = np.random.choice([1, 2], 1, p=[1-MUTATIONPROB, MUTATIONPROB])
             if mutate == 2:
                 if j == 0:
@@ -179,20 +175,7 @@ def Mutation(list, type):
             #otherwise add the bit back into the string
             else:
                 b2 += j
-        #checks to make sure mutation isn't out of bounds
-        if type:
-            d = ConvertFromBinaryG(b2)
-            if d > .524:
-                d = .524
-            elif d < -.524:
-                d = -.524
-        else:
-            d = ConvertFromBinaryB(b2)
-            if d > 5:
-                d = 5
-            elif d < -5:
-                d = -5
-        newList.append(d)
+        newList.append(b2)
     return newList
 
 
@@ -205,10 +188,14 @@ def EulerCalc(index, population):
     population[index].headAng = 0
     population[index].v = 0
 
+    gammas = []
+    betas = []
+    for g in range(10):
+        gammas.append(ConvertFromBinaryG(population[index].gamas[g]))
+        betas.append(ConvertFromBinaryB(population[index].gamas[g]))
+
     # interpolate math
     x = np.arange(10)
-    gammas = population[index].gamas
-    betas = population[index].betas
     betasCubic = sp.interpolate.CubicSpline(x, betas, bc_type='natural')
     gammasCubic = sp.interpolate.CubicSpline(x, gammas, bc_type='natural')
     betas_x, step = np.linspace(0, OPPARAM-1, 100, retstep=True)
@@ -228,7 +215,6 @@ def EulerCalc(index, population):
         elif betas_y[i] > 5:
             betas_y[i] = 5
         population[index].calcNewVals(gammas_y[i], betas_y[i], step)
-
 
 # calculates the cost function for a given individual
 # Final state is [0 0 0 0] so there is no need to subtract in the square root
@@ -259,10 +245,11 @@ def ConvertToBinaryG(value):
     d = ((value - lb) * (2 ** BINARYSIZE - 1)) / R
     d = int(d)
     binary = '{0:07b}'.format(d)
-    return binary
+    return binarytoGray(binary)
 
 
 def ConvertFromBinaryG(d):
+    d = graytoBinary(d)
     d = int(d, 2)
     lb = -0.524
     R = .524 * 2
@@ -277,10 +264,11 @@ def ConvertToBinaryB(value):
     d = ((value - lb) * (2 ** BINARYSIZE - 1)) / R
     d = int(d)
     binary = '{0:07b}'.format(d)
-    return binary
+    return binarytoGray(binary)
 
 
 def ConvertFromBinaryB(d):
+    d = graytoBinary(d)
     d = int(d, 2)
     lb = -5.0
     R = 5.0 * 2
@@ -288,8 +276,62 @@ def ConvertFromBinaryB(d):
     value = (d / (2 ** BINARYSIZE - 1)) * R + lb
     return value
 
+#code from https://www.geeksforgeeks.org/gray-to-binary-and-binary-to-gray-conversion/
+# Python3 program for Binary To Gray
+# and Gray to Binary conversion
+
+# Helper function to xor two characters
+def xor_c(a, b):
+    return '0' if (a == b) else '1';
 
 
+# Helper function to flip the bit
+def flip(c):
+    return '1' if (c == '0') else '0';
+
+
+# function to convert binary string
+# to gray string
+def binarytoGray(binary):
+    gray = ""
+
+    # MSB of gray code is same as
+    # binary code
+    gray += binary[0]
+    # Compute remaining bits, next bit
+    # is computed by doing XOR of previous
+    # and current in Binary
+    for i in range(1,7):
+        # Concatenate XOR of previous
+        # bit with current bit
+        gray += xor_c(binary[i - 1],
+                      binary[i])
+    return gray
+
+
+# function to convert gray code
+# string to binary string
+def graytoBinary(gray):
+    binary = ""
+
+    # MSB of binary code is same
+    # as gray code
+    binary += gray[0]
+
+    # Compute remaining bits
+    for i in range(1, 7):
+
+        # If current bit is 0,
+        # concatenate previous bit
+        if (gray[i] == '0'):
+            binary += binary[i - 1];
+
+        # Else, concatenate invert
+        # of previous bit
+        else:
+            binary += flip(binary[i - 1]);
+
+    return binary;
 
 # the sort function to determine the lowest cost.
 def sortFunc(i):
@@ -303,7 +345,13 @@ def main():
     for i in range(POPSIZE):
         gamas = np.random.uniform(low=-0.524, high=0.524, size=OPPARAM)
         betas = np.random.uniform(low=-5, high=5, size=OPPARAM)
-        population.append(Individual(0, 8, 0, 0, gamas, betas))
+        gamasBinary = []
+        betasBinary = []
+        for g in range(10):
+            gamasBinary.append(ConvertToBinaryG(gamas[g]))
+            betasBinary.append(ConvertToBinaryB(betas[g]))
+        population.append(Individual(0, 8, 0, 0, gamasBinary, betasBinary))
+
         EulerCalc(i, population)
         CostCalc(i, population)
         FitnessCost(i, population)
