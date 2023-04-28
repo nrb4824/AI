@@ -347,9 +347,16 @@ def main():
         betas = np.random.uniform(low=-5, high=5, size=OPPARAM)
         gamasBinary = []
         betasBinary = []
+        gfinal = []
+        bfinal = []
         for g in range(10):
+            print("before", gamas[g], betas[g])
             gamasBinary.append(ConvertToBinaryG(gamas[g]))
             betasBinary.append(ConvertToBinaryB(betas[g]))
+            print(gamasBinary[g], betasBinary[g])
+            gfinal.append(ConvertFromBinaryG(gamasBinary[g]))
+            bfinal.append(ConvertFromBinaryB(betasBinary[g]))
+            print("after", gfinal[g], bfinal[g])
         population.append(Individual(0, 8, 0, 0, gamasBinary, betasBinary))
 
         EulerCalc(i, population)
