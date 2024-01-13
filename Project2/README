@@ -1,0 +1,19 @@
+The Project:
+  The objective of this project is to design an agent program that finds the state and control
+  histories for a Dubins’ car that implements parallel parking while avoiding obstacles (e.g.,
+  sidewalk, other cars). The agent must learn to perform this task on its own using reinforcement
+  learning. The program must run with the following algorithm parameters:
+    • Cost function J tolerance: 0.1
+    • Maximum population size: 500
+    • Maximum number of generations: 1200
+    • Maximum execution time: 7 min
+
+Requirments:
+  The parking problem is to be solved using reinforcement learning. For the project, this requires the development of a
+  program that implements a genetic algorithms solver. A generic implementation of such a
+  solver must be able to work with arbitrary values for the following items:
+    • Generations
+    • Population size
+    • Size of optimization parameter vector
+    • Binary code size (the same for all input parameters)
+    • Mutation probability
